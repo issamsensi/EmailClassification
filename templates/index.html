@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Shield | Spam Email Classifier</title>
+    <meta name="description" content="Analyze email content and quickly detect whether it looks safe or spam.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="hero">
+            <nav class="topbar">
+                <div class="brand">
+                    <span class="brand-mark">✦</span>
+                    <span>Email Shield</span>
+                </div>
+                <a class="top-link" href="#analyzer">Try the classifier</a>
+            </nav>
+
+            <div class="hero-grid">
+                <section class="hero-copy">
+                    <p class="eyebrow">Smarter inbox protection</p>
+                    <h1>Classify suspicious emails in a clean, friendly workspace.</h1>
+                    <p class="hero-text">
+                        Paste any email message and get an instant prediction powered by a TF-IDF + Naive Bayes model.
+                        The interface is built to feel approachable, fast, and clear.
+                    </p>
+
+                    <div class="hero-actions">
+                        <a class="button primary" href="#analyzer">Analyze an email</a>
+                        <a class="button secondary" href="#how-it-works">How it works</a>
+                    </div>
+
+                    <div class="mini-stats">
+                        <article>
+                            <strong>Instant</strong>
+                            <span>Single-page prediction flow</span>
+                        </article>
+                        <article>
+                            <strong>Readable</strong>
+                            <span>Accessible spacing and contrast</span>
+                        </article>
+                        <article>
+                            <strong>Practical</strong>
+                            <span>Confidence score and examples</span>
+                        </article>
+                    </div>
+                </section>
+
+                <aside class="hero-card">
+                    <div class="hero-card-header">
+                        <span class="status-dot"></span>
+                        <span>Live model preview</span>
+                    </div>
+                    <div class="preview-card {{ 'danger' if is_spam else 'safe' if has_result else '' }}">
+                        <p class="preview-label">Latest status</p>
+                        {% if has_result %}
+                            <h2>{{ 'Spam detected' if is_spam else 'Looks safe' }}</h2>
+                            <p>
+                                Prediction: <strong>{{ prediction }}</strong>
+                                {% if confidence is not none %}
+                                    · Confidence: <strong>{{ confidence }}%</strong>
+                                {% endif %}
+                            </p>
+                        {% else %}
+                            <h2>Ready to analyze</h2>
+                            <p>Paste an email below to check whether the message appears to be spam or legitimate.</p>
+                        {% endif %}
+                    </div>
+                    <ul class="signal-list">
+                        <li>Flags suspicious wording quickly</li>
+                        <li>Keeps the original message in view</li>
+                        <li>Gives a simple confidence indicator</li>
+                    </ul>
+                </aside>
+            </div>
+        </header>
+
+        <main>
+            <section id="analyzer" class="analyzer-section">
+                <div class="section-heading">
+                    <p class="eyebrow">Analyzer</p>
+                    <h2>Paste an email and review the result</h2>
+                    <p>The form preserves your text, highlights errors gently, and shows the model output in a focused result panel.</p>
+                </div>
+
+                <div class="analyzer-grid">
+                    <form method="POST" class="analyzer-card">
+                        <label for="email" class="field-label">Email content</label>
+                        <textarea
+                            id="email"
+                            name="email"
+                            rows="14"
+                            placeholder="Example: Congratulations! You've won a free gift card. Click the link below to claim your reward..."
+                            required
+                        >{{ email_text }}</textarea>
+
+                        <div class="field-meta">
+                            <span id="charCount">0 characters</span>
+                            <span>Tip: include subject/body style wording for better results.</span>
+                        </div>
+
+                        {% if error_message %}
+                            <div class="alert error">{{ error_message }}</div>
+                        {% endif %}
+
+                        <div class="form-actions">
+                            <button type="submit" class="button primary">Analyze now</button>
+                            <button type="button" class="button ghost" id="clearBtn">Clear</button>
+                        </div>
+                    </form>
+
+                    <aside class="result-card">
+                        <div class="result-header">
+                            <p class="eyebrow">Result</p>
+                            <h3>{{ 'Spam detected' if has_result and is_spam else 'Safe message' if has_result else 'Awaiting input' }}</h3>
+                        </div>
+
+                        {% if has_result %}
+                            <div class="result-badge {{ 'badge-danger' if is_spam else 'badge-safe' }}">
+                                {{ prediction }}
+                            </div>
+                            <p class="result-summary">
+                                {{ 'This message contains patterns commonly found in spam emails.' if is_spam else 'This message looks closer to a legitimate email based on the trained model.' }}
+                            </p>
+                            {% if confidence is not none %}
+                                <div class="confidence-block">
+                                    <div class="confidence-row">
+                                        <span>Confidence</span>
+                                        <strong>{{ confidence }}%</strong>
+                                    </div>
+                                    <div class="confidence-bar" data-confidence="{{ confidence }}">
+                                        <span></span>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <p class="result-summary">Your prediction will appear here with a clear label and confidence score.</p>
+                        {% endif %}
+
+                        <div class="example-block">
+                            <p class="example-title">Quick examples</p>
+                            <div class="example-list">
+                                <button type="button" class="example-chip" data-example="Hi Sarah, attached is the updated invoice for March. Please review and let me know if you'd like any revisions.">Legitimate work email</button>
+                                <button type="button" class="example-chip" data-example="Urgent! Your bank account will be suspended today unless you verify your password immediately using the secure link below.">Urgent phishing style</button>
+                                <button type="button" class="example-chip" data-example="Congratulations winner! Claim your free vacation now. Limited offer, act immediately and send your personal details.">Prize scam style</button>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+            </section>
+
+            <section id="how-it-works" class="info-section">
+                <div class="section-heading compact">
+                    <p class="eyebrow">Workflow</p>
+                    <h2>How the project works</h2>
+                </div>
+
+                <div class="feature-grid">
+                    <article class="feature-card">
+                        <span class="feature-number">01</span>
+                        <h3>Clean the text</h3>
+                        <p>URLs, punctuation, numbers, and extra whitespace are normalized before inference.</p>
+                    </article>
+                    <article class="feature-card">
+                        <span class="feature-number">02</span>
+                        <h3>Vectorize content</h3>
+                        <p>The message is transformed with TF-IDF so the classifier can reason about word importance.</p>
+                    </article>
+                    <article class="feature-card">
+                        <span class="feature-number">03</span>
+                        <h3>Predict spam vs safe</h3>
+                        <p>A Naive Bayes model returns the label and a confidence estimate for quick interpretation.</p>
+                    </article>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
