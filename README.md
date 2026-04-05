@@ -157,4 +157,4 @@ The app validates input and requires meaningful text after cleaning.
 
 ## License
 
-No license is currently defined. Add one (for example MIT) before public distribution.
+MIT license
